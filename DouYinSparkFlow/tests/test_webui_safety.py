@@ -36,6 +36,22 @@ class WebUiSafetyTests(unittest.TestCase):
         with patch.object(tasks.os, "kill", side_effect=error):
             self.assertFalse(tasks._pid_is_alive(999999))
 
+    def test_dialog_scan_uses_bounded_locator_count(self):
+        source = Path(tasks.__file__).read_text(encoding="utf-8")
+        block = source[source.index("async def _dismiss_non_login_dialogs"):source.index("async def _open_friends_tab")]
+        self.assertIn("_locator_count_with_timeout", block)
+        self.assertIn("timeout_seconds=1", block)
+
+    def test_friend_scroller_prefers_dynamic_over_generated_xpath(self):
+        source = Path(tasks.__file__).read_text(encoding="utf-8")
+        block = source[
+            source.index("async def _first_scrollable_friends_element"):
+            source.index("async def scroll_and_select_user")
+        ]
+        self.assertLess(block.index("evaluate_handle"), block.index("for selector in selectors"))
+        self.assertIn("element.scrollHeight - element.clientHeight", block)
+        self.assertIn("element_handle(timeout=1000)", block)
+
     def test_missing_optional_runtime_tools_do_not_log_warnings(self):
         with (
             patch.object(ops.subprocess, "run", side_effect=FileNotFoundError("missing")),

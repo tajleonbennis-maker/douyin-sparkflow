@@ -267,10 +267,16 @@ async def _dismiss_non_login_dialogs(page, account_name, stage):
     dismissed = 0
     for selector in LOGIN_REQUIRED_DIALOG_SELECTORS:
         locator = page.locator(selector)
-        try:
-            count = min(await locator.count(), 5)
-        except Exception:
+        count = await _locator_count_with_timeout(
+            locator,
+            account_name,
+            stage,
+            selector,
+            timeout_seconds=1,
+        )
+        if count is None:
             continue
+        count = min(count, 5)
 
         for index in range(count):
             item = locator.nth(index)
@@ -1335,9 +1341,40 @@ async def _extract_friend_record(element):
 
 
 async def _first_scrollable_friends_element(page, selectors):
+    try:
+        handle = await page.evaluate_handle(
+            """() => {
+                const root = document.querySelector('#sub-app');
+                if (!root) return null;
+                const score = (element) => {
+                    const names = element.querySelectorAll('[class*="item-header-name"]').length;
+                    const rows = element.querySelectorAll('li, [class*="list-item"]').length;
+                    const range = Math.max(0, element.scrollHeight - element.clientHeight);
+                    return names * 10000 + rows * 100 + Math.min(range, 100000);
+                };
+                const candidates = [...root.querySelectorAll('*')].filter((element) => {
+                    const style = getComputedStyle(element);
+                    const range = element.scrollHeight - element.clientHeight;
+                    const containsFriends = element.querySelector(
+                        '[class*="item-header-name"], li, [class*="list-item"]'
+                    );
+                    return range > 20
+                        && ['auto', 'scroll'].includes(style.overflowY)
+                        && containsFriends;
+                });
+                candidates.sort((left, right) => score(right) - score(left));
+                return candidates[0] || null;
+            }"""
+        )
+        element = handle.as_element()
+        if element:
+            return "dynamic-scrollable-friend-list", element
+    except Exception as exc:
+        logger.debug("Dynamic friend scroller detection failed: %s", exc)
+
     for selector in selectors:
         try:
-            handle = await page.locator(selector).first.element_handle()
+            handle = await page.locator(selector).first.element_handle(timeout=1000)
         except Exception:
             handle = None
         if handle:
