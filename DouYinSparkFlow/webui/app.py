@@ -692,6 +692,9 @@ def create_app():
 
         current = principal(request)
         accounts = get_visible_accounts(current, get_userData(force_reload=True))
+        ops_snapshot = scoped_ops_snapshot(request)
+        daily_schedule = str(ops_snapshot.get("daily_schedule") or "")
+        basic_send_time = daily_schedule if len(daily_schedule) == 5 and daily_schedule[2] == ":" else "20:00"
         return render_template(
             request,
             "dashboard.html",
@@ -699,7 +702,8 @@ def create_app():
                 "flash": pop_flash(request),
                 "accounts": accounts,
                 "runtime_config": get_config(force_reload=True) if current.get("role") == "admin" else {},
-                "ops": scoped_ops_snapshot(request),
+                "ops": ops_snapshot,
+                "basic_send_time": basic_send_time,
                 "principal": current,
                 "is_admin": current.get("role") == "admin",
                 "web_users": get_web_users() if current.get("role") == "admin" else [],
@@ -748,6 +752,47 @@ def create_app():
             flash(request, "Account not found.", "error")
 
         return redirect("/")
+
+    @app.post("/accounts/{unique_id}/basic-plan")
+    async def save_basic_plan(request: Request, unique_id: str):
+        maybe_redirect = require_user(request)
+        if maybe_redirect:
+            return maybe_redirect
+
+        form = await request.form()
+        if not validate_csrf(request, str(form.get("csrf_token", ""))):
+            return Response("Invalid CSRF token", status_code=403)
+
+        accounts, account, access_error = account_for_request(request, unique_id)
+        if access_error:
+            return access_error
+        if not account:
+            flash(request, "账号不存在。", "error")
+            return redirect("/#account-management")
+
+        send_time = str(form.get("send_time", "")).strip()
+        message_template = str(form.get("messageTemplate", "")).strip()
+        targets = extract_targets_from_form(form)
+        if not targets:
+            flash(request, "请至少选择一位续火花好友。", "error")
+            return redirect(f"/#account-{unique_id}")
+        if not message_template:
+            flash(request, "请填写要发送的消息。", "error")
+            return redirect(f"/#account-{unique_id}")
+
+        schedule_result = update_daily_schedule(send_time)
+        if schedule_result.returncode != 0:
+            flash(request, "发送时间保存失败，请检查时间后重试。", "error")
+            return redirect(f"/#account-{unique_id}")
+
+        config = get_config(force_reload=True)
+        config["messageTemplate"] = message_template
+        save_config(config)
+        account["targets"] = targets
+        account["enabled"] = True
+        save_userData(accounts)
+        flash(request, f"计划已启用：每天 {send_time} 向 {len(targets)} 位好友发送消息。", "success")
+        return redirect(f"/#account-{unique_id}")
 
     @app.post("/accounts/{unique_id}/toggle-enabled")
     async def toggle_account_enabled(request: Request, unique_id: str):

@@ -1774,6 +1774,38 @@ body[data-page="dashboard"] .metric-grid { order: 7; }
 body[data-page="dashboard"] #user-management { order: 20; }
 body[data-page="dashboard"] .advanced-grid { order: 30; }
 
+/* The home page is deliberately task-focused. Operational diagnostics remain
+   available from the dedicated send console instead of competing with setup. */
+body[data-page="dashboard"] #plan-settings,
+body[data-page="dashboard"] .status-banner,
+body[data-page="dashboard"] .refresh-notice,
+body[data-page="dashboard"] .overview-strip,
+body[data-page="dashboard"] .metric-grid,
+body[data-page="dashboard"] #user-management,
+body[data-page="dashboard"] .advanced-grid,
+body[data-page="dashboard"] .dashboard-stack > .dashboard-section:not(#account-management) {
+  display: none;
+}
+
+.basic-plan-form {
+  gap: 18px;
+}
+
+.basic-plan-settings {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.35fr) minmax(280px, 1fr);
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-alt);
+}
+
+.basic-plan-settings input[type="time"] {
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
 body[data-page="dashboard"] .page-header .action-bar form {
   display: none;
 }
@@ -2062,5 +2094,9 @@ body[data-page="dashboard"] .page-header .action-bar form {
 
   .setup-step small {
     white-space: normal;
+  }
+
+  .basic-plan-settings {
+    grid-template-columns: 1fr;
   }
 }

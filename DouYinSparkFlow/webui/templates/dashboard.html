@@ -71,7 +71,7 @@
         <span class="setup-step-number">{% if total %}<i data-lucide="check"></i>{% else %}2{% endif %}</span>
         <span><strong>选择好友</strong><small>{% if total %}已选择 {{ total }} 位好友{% else %}从好友列表勾选{% endif %}</small></span>
       </a>
-      <a class="setup-step {% if total %}current{% endif %}" href="#plan-settings">
+      <a class="setup-step {% if total %}current{% endif %}" href="#account-management">
         <span class="setup-step-number">3</span>
         <span><strong>设置计划</strong><small>{{ ops.schedule.label or "选择发送时间" }}</small></span>
       </a>
@@ -82,7 +82,7 @@
       {% elif not total %}
       <a class="button button-primary button-large" href="#account-management"><i data-lucide="users"></i><span>选择续火花好友</span></a>
       {% else %}
-      <a class="button button-primary button-large" href="#plan-settings"><i data-lucide="calendar-clock"></i><span>检查发送计划</span></a>
+      <a class="button button-primary button-large" href="#account-management"><i data-lucide="calendar-clock"></i><span>编辑续火花计划</span></a>
       {% endif %}
       <span class="setup-summary">{{ accounts|length }} 个账号 · {{ total }} 位好友 · 下次 {{ ops.schedule.nextTriggerDisplay or "待设置" }}</span>
     </div>
@@ -420,7 +420,7 @@
     </div>
     <div class="account-management-list">
       {% for account in accounts %}
-      <details class="collapsible-section account-task-card" {% if accounts|length == 1 %}open{% endif %}>
+      <details class="collapsible-section account-task-card" id="account-{{ account.unique_id }}" {% if accounts|length == 1 %}open{% endif %}>
         <summary>
           <span class="summary-copy">
             <span class="account-avatar">{{ (account.username or "A")[:1] }}</span>
@@ -435,22 +435,9 @@
           <i class="summary-chevron" data-lucide="chevron-down"></i>
         </summary>
         <div class="collapsible-body">
-          <form method="post" action="/accounts/{{ account.unique_id }}/update" class="stack-form">
+          <form method="post" action="/accounts/{{ account.unique_id }}/basic-plan" class="stack-form basic-plan-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <div class="form-grid">
-              <label>
-                <span>显示名</span>
-                <input type="text" name="username" value="{{ account.username }}">
-              </label>
-              <label class="check-row">
-                <input type="checkbox" name="enabled" {% if account.enabled|default(true) %}checked{% endif %}>
-                <span>启用自动续火花</span>
-              </label>
-            </div>
-            <label>
-              <span>已选择的好友（也可手动输入，每行一个）</span>
-              <textarea class="targets-textarea" name="targets" rows="5">{{ account.targets|default([], true)|join('\n') }}</textarea>
-            </label>
+            <textarea class="targets-textarea" name="targets" hidden>{{ account.targets|default([], true)|join('\n') }}</textarea>
             <div
               class="friend-picker"
               data-account-id="{{ account.unique_id }}"
@@ -477,9 +464,19 @@
               <script type="application/json" id="friends-cache-{{ account.unique_id }}">{{ account.friends_cache|default([], true)|tojson }}</script>
               <script type="application/json" id="selected-targets-{{ account.unique_id }}">{{ account.targets|default([], true)|tojson }}</script>
             </div>
+            <div class="basic-plan-settings">
+              <label>
+                <span>每天几点续火花</span>
+                <input type="time" name="send_time" value="{{ basic_send_time }}" required>
+              </label>
+              <label>
+                <span>发送消息</span>
+                <input type="text" name="messageTemplate" value="{{ runtime_config.messageTemplate }}" placeholder="例如：今天也要开心呀 ✨" required maxlength="200">
+              </label>
+            </div>
             <div class="form-actions">
               <button class="button button-primary" type="submit">
-                <i data-lucide="save"></i><span>保存账号</span>
+                <i data-lucide="play"></i><span>保存并启用</span>
               </button>
               <button
                 class="button button-quiet login-desktop-open"

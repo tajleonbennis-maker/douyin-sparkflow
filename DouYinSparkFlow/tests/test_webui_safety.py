@@ -257,6 +257,86 @@ class WebUiSafetyTests(unittest.TestCase):
         self.assertIn('/friends/refresh', script)
         self.assertIn('正在同步好友列表', script)
 
+    def test_basic_plan_saves_targets_time_message_and_enables_account(self):
+        client = TestClient(app_module.app)
+        accounts = [
+            {
+                "account_ref": "account-1",
+                "unique_id": "12345",
+                "username": "Account",
+                "targets": [],
+                "enabled": False,
+            }
+        ]
+        schedule_result = Mock(returncode=0)
+        with (
+            patch.object(app_module, "current_user", return_value="admin"),
+            patch.object(app_module, "validate_csrf", return_value=True),
+            patch.object(app_module, "get_userData", return_value=accounts),
+            patch.object(app_module, "get_config", return_value={"messageTemplate": "old"}),
+            patch.object(app_module, "update_daily_schedule", return_value=schedule_result) as update_schedule,
+            patch.object(app_module, "save_config") as save_config,
+            patch.object(app_module, "save_userData") as save_accounts,
+        ):
+            response = client.post(
+                "/accounts/12345/basic-plan",
+                data={
+                    "csrf_token": "test",
+                    "targets": "好友甲\n好友乙",
+                    "send_time": "20:30",
+                    "messageTemplate": "晚上好 ✨",
+                },
+                follow_redirects=False,
+            )
+
+        self.assertEqual(303, response.status_code)
+        update_schedule.assert_called_once_with("20:30")
+        save_config.assert_called_once_with({"messageTemplate": "晚上好 ✨"})
+        saved_accounts = save_accounts.call_args.args[0]
+        self.assertEqual(["好友甲", "好友乙"], saved_accounts[0]["targets"])
+        self.assertTrue(saved_accounts[0]["enabled"])
+
+    def test_basic_plan_is_available_to_assigned_regular_user(self):
+        client = TestClient(app_module.app)
+        accounts = [
+            {
+                "account_ref": "account-1",
+                "unique_id": "12345",
+                "username": "Account",
+                "targets": [],
+                "enabled": False,
+            }
+        ]
+        regular_user = {
+            "username": "member",
+            "role": "user",
+            "account_refs": ["account-1"],
+            "session_id": "session",
+            "enabled": True,
+        }
+        with (
+            patch.object(app_module, "current_principal", return_value=regular_user),
+            patch.object(app_module, "validate_csrf", return_value=True),
+            patch.object(app_module, "get_userData", return_value=accounts),
+            patch.object(app_module, "get_config", return_value={}),
+            patch.object(app_module, "update_daily_schedule", return_value=Mock(returncode=0)),
+            patch.object(app_module, "save_config"),
+            patch.object(app_module, "save_userData"),
+        ):
+            response = client.post(
+                "/accounts/12345/basic-plan",
+                data={
+                    "csrf_token": "test",
+                    "targets": "好友甲",
+                    "send_time": "20:30",
+                    "messageTemplate": "晚上好",
+                },
+                follow_redirects=False,
+            )
+
+        self.assertEqual(303, response.status_code)
+        self.assertNotEqual("Forbidden", response.text)
+
     def test_mobile_login_popup_opens_before_async_request(self):
         script = (Path(app_module.STATIC_DIR) / "app.js").read_text(encoding="utf-8")
         block_start = script.index('document.querySelectorAll(".login-desktop-open")')
