@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark light">
     <title>{% block title %}续火花{% endblock %}</title>
-    <link rel="stylesheet" href="/static/app.css?v=20260817">
+    <link rel="stylesheet" href="/static/app.css?v=20260822-redesign1">
   </head>
   <body data-page="{% block page_key %}dashboard{% endblock %}">
     <header class="mobile-topbar">
@@ -30,8 +30,8 @@
           <a class="brand" href="/">
             <span class="brand-mark"><i data-lucide="flame"></i></span>
             <span>
-              <strong class="brand-title">续火花</strong>
-              <small class="brand-subtitle">多账号控制平台</small>
+              <strong class="brand-title">SparkFlow</strong>
+              <small class="brand-subtitle">好友互动助手</small>
             </span>
           </a>
           <button class="icon-button sidebar-close" type="button" data-nav-close aria-label="关闭导航" title="关闭导航">
@@ -41,30 +41,30 @@
 
         <nav class="nav-groups">
           <section>
-            <p class="nav-group-title">工作台</p>
+            <p class="nav-group-title">日常使用</p>
             <div class="nav-group">
               <a class="nav-item {% if current_nav|trim == 'dashboard' %}active{% endif %}" href="/">
-                <i data-lucide="layout-dashboard"></i><span>首页总览</span>
+                <i data-lucide="sparkles"></i><span>我的计划</span>
               </a>
               <a class="nav-item {% if current_nav|trim == 'send_console' %}active{% endif %}" href="/ops/send-console">
-                <i data-lucide="send"></i><span>发送控制台</span>
+                <i data-lucide="history"></i><span>发送记录</span>
               </a>
               {% if is_admin %}
               <a class="nav-item {% if current_nav|trim == 'logs' %}active{% endif %}" href="/ops/logs">
-                <i data-lucide="scroll-text"></i><span>发送记录</span>
+                <i data-lucide="scroll-text"></i><span>系统日志</span>
               </a>
               {% endif %}
             </div>
           </section>
 
           <section>
-            <p class="nav-group-title">管理</p>
+            <p class="nav-group-title">设置</p>
             <div class="nav-group">
               <a class="nav-item" href="/#account-management">
-                <i data-lucide="users"></i><span>账号管理</span>
+                <i data-lucide="users"></i><span>好友与任务</span>
               </a>
               <a class="nav-item" href="/#interactive-login-section">
-                <i data-lucide="scan-line"></i><span>登录抖音账号</span>
+                <i data-lucide="scan-line"></i><span>添加抖音账号</span>
               </a>
 {% if is_admin %}
               <a class="nav-item" href="/#config-panel">
@@ -139,7 +139,7 @@
     </dialog>
 
     <script defer src="/static/lucide.min.js?v=20260710"></script>
-    <script defer src="/static/app.js?v=20260817"></script>
+    <script defer src="/static/app.js?v=20260822-redesign1"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

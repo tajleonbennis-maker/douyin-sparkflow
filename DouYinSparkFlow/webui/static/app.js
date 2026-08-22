@@ -348,6 +348,8 @@
   let heartbeatTimer = null;
   let countdownTimer = null;
   let qrRefreshTimer = null;
+  let savingLogin = false;
+  let autoSaveAttemptedTicket = "";
   let workspace = { state: "closed", active: false, position: 0, ticket: "" };
 
   const setStatus = (text, tone = "") => {
@@ -435,6 +437,41 @@
     }, delay);
   };
 
+  const saveDetectedLogin = async ({ automatic = false, reloginUniqueId = "" } = {}) => {
+    if (savingLogin) return;
+    savingLogin = true;
+    setStatus(automatic ? "扫码成功，正在自动保存抖音账号..." : "正在保存抖音账号...", "success");
+    if (qrStatus) qrStatus.textContent = "已识别扫码登录，正在保存账号资料，请勿关闭页面。";
+    try {
+      const data = await postForm("/login-desktop/save", { relogin_unique_id: reloginUniqueId });
+      const accountName = data.account?.username || data.account?.unique_id || "抖音账号";
+      let syncMessage = "";
+      if (data.account?.unique_id) {
+        setStatus(`账号 ${accountName} 已保存，正在同步好友列表...`, "success");
+        if (qrStatus) qrStatus.textContent = "登录成功，正在首次同步好友，请保持页面打开。";
+        try {
+          const friendData = await postForm(
+            `/accounts/${encodeURIComponent(data.account.unique_id)}/friends/refresh`,
+          );
+          syncMessage = `，已同步 ${(friendData.friends || []).length} 位好友`;
+        } catch (syncError) {
+          syncMessage = `；好友同步暂时失败：${syncError.message}`;
+        }
+      }
+      renderWorkspace(data.workspace);
+      setStatus(`登录成功，已保存账号：${accountName}${syncMessage}`, syncMessage.includes("失败") ? "warning" : "success");
+      if (qrStatus) qrStatus.textContent = `登录成功，已保存账号：${accountName}${syncMessage}`;
+      closeFrame();
+      if (qrImage) qrImage.hidden = true;
+      window.setTimeout(() => window.location.reload(), 1800);
+    } catch (error) {
+      setStatus(`保存登录账号失败：${error.message}`, "danger");
+      if (qrStatus) qrStatus.textContent = `扫码已识别，但保存失败：${error.message}。可点击“保存新账号登录”重试。`;
+    } finally {
+      savingLogin = false;
+    }
+  };
+
   const pollStatus = async () => {
     if (document.visibilityState !== "visible") return;
     try {
@@ -448,7 +485,13 @@
       renderWorkspace(data.workspace);
       if (workspace.state === "active" && workspace.active) {
         loadFrame();
-        if (data.logged_in) setStatus(`当前浏览器已登录：${data.username}，请保存登录态。`, "success");
+        if (data.logged_in) {
+          setStatus(`已识别扫码登录：${data.username || "抖音账号"}，准备自动保存。`, "success");
+          if (workspace.ticket && autoSaveAttemptedTicket !== workspace.ticket) {
+            autoSaveAttemptedTicket = workspace.ticket;
+            await saveDetectedLogin({ automatic: true });
+          }
+        }
       } else {
         closeFrame();
       }
@@ -512,15 +555,7 @@
 
   document.querySelectorAll(".login-desktop-save").forEach((button) => {
     button.addEventListener("click", async () => {
-      try {
-        const data = await postForm("/login-desktop/save", { relogin_unique_id: button.dataset.reloginUniqueId || "" });
-        renderWorkspace(data.workspace);
-        setStatus(`已保存登录账号：${data.account?.username || ""}`, "success");
-        closeFrame();
-        window.setTimeout(() => window.location.reload(), 800);
-      } catch (error) {
-        setStatus(`保存登录账号失败：${error.message}`, "danger");
-      }
+      await saveDetectedLogin({ reloginUniqueId: button.dataset.reloginUniqueId || "" });
     });
   });
 

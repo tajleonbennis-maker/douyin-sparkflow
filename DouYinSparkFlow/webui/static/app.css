@@ -1752,3 +1752,315 @@ textarea {
     display: none;
   }
 }
+
+/* Product-first dashboard ------------------------------------------------- */
+body[data-page="dashboard"] .dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+body[data-page="dashboard"] .dashboard-stack > * {
+  order: 10;
+}
+
+body[data-page="dashboard"] .setup-hero { order: 0; }
+body[data-page="dashboard"] #interactive-login-section { order: 1; }
+body[data-page="dashboard"] #account-management { order: 2; }
+body[data-page="dashboard"] #plan-settings { order: 3; }
+body[data-page="dashboard"] .status-banner { order: 5; }
+body[data-page="dashboard"] .overview-strip { order: 6; }
+body[data-page="dashboard"] .metric-grid { order: 7; }
+body[data-page="dashboard"] #user-management { order: 20; }
+body[data-page="dashboard"] .advanced-grid { order: 30; }
+
+body[data-page="dashboard"] .page-header .action-bar form {
+  display: none;
+}
+
+.setup-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(22px, 4vw, 42px);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(233, 72, 114, 0.19), transparent 34%),
+    radial-gradient(circle at 8% 96%, rgba(242, 106, 61, 0.16), transparent 38%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.setup-hero::after {
+  content: "";
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  right: -110px;
+  bottom: -130px;
+  border: 46px solid rgba(242, 106, 61, 0.07);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.setup-hero-copy {
+  max-width: 720px;
+}
+
+.eyebrow,
+.section-kicker {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.eyebrow svg,
+.status-chip svg {
+  width: 15px;
+  height: 15px;
+}
+
+.setup-hero h2 {
+  max-width: 680px;
+  margin: 10px 0 8px;
+  font-size: clamp(29px, 4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.setup-hero-copy > p {
+  max-width: 650px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.setup-progress {
+  position: relative;
+  z-index: 1;
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.setup-step {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-alt) 84%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.setup-step:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.setup-step.current {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: var(--primary-soft);
+}
+
+.setup-step.complete .setup-step-number {
+  color: #fff;
+  background: var(--success);
+}
+
+.setup-step-number {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 900;
+}
+
+.setup-step-number svg {
+  width: 17px;
+  height: 17px;
+}
+
+.setup-step strong,
+.setup-step small {
+  display: block;
+}
+
+.setup-step small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-hero-actions {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.button-large {
+  min-height: 46px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.setup-summary {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.onboarding-section,
+.account-task-card,
+.plan-builder {
+  border-radius: 16px;
+}
+
+.onboarding-section {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.onboarding-section > summary {
+  padding: 18px 20px;
+}
+
+.plan-builder {
+  padding: 22px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.plan-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.plan-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-alt);
+  align-content: start;
+}
+
+.plan-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.plan-card-icon.accent {
+  color: var(--accent);
+  background: rgba(233, 72, 114, 0.13);
+}
+
+.plan-card-icon.muted {
+  color: var(--text-muted);
+  background: var(--surface-soft);
+}
+
+.plan-card > div > p {
+  margin-top: 4px;
+}
+
+.feature-preview {
+  opacity: 0.76;
+}
+
+.account-task-card {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.account-task-card[open] {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.08);
+}
+
+.account-task-card > summary {
+  padding: 18px;
+}
+
+.account-task-card .collapsible-body {
+  padding: 20px;
+}
+
+.account-task-card .friend-picker {
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.account-task-card .friend-picker-list {
+  max-height: 360px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.account-task-card .friend-option {
+  padding: 10px 11px;
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.account-task-card .friend-option.selected {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: var(--primary-soft);
+}
+
+@media (max-width: 1100px) {
+  .plan-builder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .account-task-card .friend-picker-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .setup-progress,
+  .plan-builder-grid,
+  .account-task-card .friend-picker-list {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-hero,
+  .plan-builder {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .setup-step small {
+    white-space: normal;
+  }
+}

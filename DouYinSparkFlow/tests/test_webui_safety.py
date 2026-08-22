@@ -250,6 +250,13 @@ class WebUiSafetyTests(unittest.TestCase):
         self.assertIn("data-refresh-login-qr", dashboard)
         self.assertIn("/login-desktop/qr", dashboard)
 
+    def test_detected_login_auto_saves_and_syncs_friends(self):
+        script = (Path(app_module.STATIC_DIR) / "app.js").read_text(encoding="utf-8")
+        self.assertIn('await saveDetectedLogin({ automatic: true })', script)
+        self.assertIn('postForm("/login-desktop/save"', script)
+        self.assertIn('/friends/refresh', script)
+        self.assertIn('正在同步好友列表', script)
+
     def test_mobile_login_popup_opens_before_async_request(self):
         script = (Path(app_module.STATIC_DIR) / "app.js").read_text(encoding="utf-8")
         block_start = script.index('document.querySelectorAll(".login-desktop-open")')

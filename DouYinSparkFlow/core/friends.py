@@ -114,6 +114,67 @@ async def _friend_list_dom_summary(page):
     )
 
 
+async def _find_scrollable_friends(page):
+    """Return the current friend-list scroller across old and new Douyin DOMs."""
+    historical = page.locator(SCROLLABLE_FRIENDS_SELECTOR)
+    try:
+        if await historical.count() > 0:
+            return await historical.first.element_handle(timeout=3000)
+    except Exception:
+        pass
+
+    handle = await page.evaluate_handle(
+        """() => {
+            const root = document.querySelector('#sub-app');
+            if (!root) return null;
+            const score = (element) => {
+                const names = element.querySelectorAll('[class*="item-header-name"]').length;
+                const items = element.querySelectorAll('li, [class*="list-item"]').length;
+                return names * 1000 + items * 10 + Math.min(element.scrollHeight, 10000);
+            };
+            const candidates = [...root.querySelectorAll('*')].filter((element) => {
+                const style = getComputedStyle(element);
+                const scrollable = element.scrollHeight > element.clientHeight + 20
+                    && ['auto', 'scroll'].includes(style.overflowY);
+                const containsRows = element.querySelector(
+                    'li, [class*="item-header-name"], [class*="list-item"]'
+                );
+                return scrollable && containsRows;
+            });
+            candidates.sort((left, right) => score(right) - score(left));
+            return candidates[0] || null;
+        }"""
+    )
+    return handle.as_element()
+
+
+async def _visible_friend_names(page):
+    """Collect visible names without relying on one generated class/XPath shape."""
+    found = []
+    target_elements = await page.locator(TARGET_SELECTOR).all()
+    for element in target_elements:
+        try:
+            name = (await element.locator(FRIEND_NAME_SELECTOR).inner_text()).strip()
+        except Exception:
+            continue
+        if name:
+            found.append(name)
+
+    if found:
+        return found
+
+    name_elements = await page.locator('#sub-app [class*="item-header-name"]').all()
+    for element in name_elements:
+        try:
+            if await element.is_visible():
+                name = (await element.inner_text()).strip()
+                if name:
+                    found.append(name)
+        except Exception:
+            continue
+    return found
+
+
 async def _wait_for_first_friend_or_empty(page):
     for _ in range(FRIEND_LIST_EMPTY_ROUNDS):
         await _dismiss_non_login_dialogs(page)
@@ -175,13 +236,9 @@ async def collect_friend_names(page):
     stuck_rounds = 0
 
     while True:
-        target_elements = await page.locator(TARGET_SELECTOR).all()
+        visible_names = await _visible_friend_names(page)
         new_names_count = 0
-        for element in target_elements:
-            try:
-                name = (await element.locator(FRIEND_NAME_SELECTOR).inner_text()).strip()
-            except Exception:
-                continue
+        for name in visible_names:
             if not name or name in seen_names:
                 continue
             seen_names.add(name)
@@ -196,7 +253,7 @@ async def collect_friend_names(page):
         if await loading.count() > 0 and await loading.is_visible():
             await asyncio.sleep(1.5)
 
-        scrollable_element = await page.locator(SCROLLABLE_FRIENDS_SELECTOR).element_handle()
+        scrollable_element = await _find_scrollable_friends(page)
         if not scrollable_element:
             if found_names:
                 return found_names

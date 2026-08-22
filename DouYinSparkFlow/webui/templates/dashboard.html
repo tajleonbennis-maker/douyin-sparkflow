@@ -3,8 +3,8 @@
 {% block nav_key %}dashboard{% endblock %}
 {% block page_key %}dashboard{% endblock %}
 {% block title %}续火花控制台{% endblock %}
-{% block page_title %}今日续火花{% endblock %}
-{% block page_subtitle %}确认进度、异常目标与下一次自动触发{% endblock %}
+{% block page_title %}我的续火花计划{% endblock %}
+{% block page_subtitle %}选择好友、安排时间，剩下的交给 SparkFlow{% endblock %}
 
 {% block topbar_actions %}
 {% set top_summary = ops.send_console.summary %}
@@ -56,6 +56,75 @@
 {% set progress_pct = (confirmed / total * 100)|round(0)|int if total else 0 %}
 
 <div class="dashboard-stack" data-overview-root>
+  <section class="setup-hero" id="setup-guide">
+    <div class="setup-hero-copy">
+      <span class="eyebrow"><i data-lucide="sparkles"></i> 三步完成自动续火花</span>
+      <h2>今天想和谁保持联系？</h2>
+      <p>登录抖音后会自动同步好友。选择好友、设置时间和消息，即可开始自动运行。</p>
+    </div>
+    <div class="setup-progress" aria-label="配置进度">
+      <a class="setup-step {% if accounts|length %}complete{% else %}current{% endif %}" href="#interactive-login-section">
+        <span class="setup-step-number">{% if accounts|length %}<i data-lucide="check"></i>{% else %}1{% endif %}</span>
+        <span><strong>登录账号</strong><small>{% if accounts|length %}已连接 {{ accounts|length }} 个账号{% else %}扫码连接抖音{% endif %}</small></span>
+      </a>
+      <a class="setup-step {% if total %}complete{% elif accounts|length %}current{% endif %}" href="#account-management">
+        <span class="setup-step-number">{% if total %}<i data-lucide="check"></i>{% else %}2{% endif %}</span>
+        <span><strong>选择好友</strong><small>{% if total %}已选择 {{ total }} 位好友{% else %}从好友列表勾选{% endif %}</small></span>
+      </a>
+      <a class="setup-step {% if total %}current{% endif %}" href="#plan-settings">
+        <span class="setup-step-number">3</span>
+        <span><strong>设置计划</strong><small>{{ ops.schedule.label or "选择发送时间" }}</small></span>
+      </a>
+    </div>
+    <div class="setup-hero-actions">
+      {% if not accounts|length %}
+      <a class="button button-primary button-large" href="#interactive-login-section"><i data-lucide="scan-line"></i><span>添加第一个抖音账号</span></a>
+      {% elif not total %}
+      <a class="button button-primary button-large" href="#account-management"><i data-lucide="users"></i><span>选择续火花好友</span></a>
+      {% else %}
+      <a class="button button-primary button-large" href="#plan-settings"><i data-lucide="calendar-clock"></i><span>检查发送计划</span></a>
+      {% endif %}
+      <span class="setup-summary">{{ accounts|length }} 个账号 · {{ total }} 位好友 · 下次 {{ ops.schedule.nextTriggerDisplay or "待设置" }}</span>
+    </div>
+  </section>
+
+  {% if is_admin %}
+  <section class="plan-builder" id="plan-settings">
+    <div class="section-header">
+      <div>
+        <span class="section-kicker">第 3 步</span>
+        <h2 class="section-title">设置自动发送计划</h2>
+        <p class="muted compact">一次设置，系统会在时间窗口内自动为已选择的好友续火花。</p>
+      </div>
+      <span class="status-chip success"><i data-lucide="shield-check"></i> 自动运行</span>
+    </div>
+    <div class="plan-builder-grid">
+      <form method="post" action="/ops/schedule" class="plan-card stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span class="plan-card-icon"><i data-lucide="clock-3"></i></span>
+        <div><strong>每天几点发送</strong><p class="muted compact">例如 10:00-18:00/20m，表示 10–18 点每 20 分钟检查一次。</p></div>
+        <label><span>发送时间窗口</span><input type="text" name="daily_schedule" value="{{ ops.daily_schedule }}" placeholder="10:00-18:00/20m"></label>
+        <button class="button button-primary" type="submit"><i data-lucide="calendar-check"></i><span>保存发送时间</span></button>
+      </form>
+      <form method="post" action="/config" class="plan-card stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span class="plan-card-icon accent"><i data-lucide="message-circle-heart"></i></span>
+        <div><strong>发送什么内容</strong><p class="muted compact">固定一句问候，也可以在高级设置中添加多条随机文案。</p></div>
+        <label><span>默认消息</span><input type="text" name="messageTemplate" value="{{ runtime_config.messageTemplate }}" placeholder="✨ 今日火花 +1"></label>
+        <textarea name="messageVariants" hidden>{{ runtime_config.sendStrategy.messageVariants|join('\n') }}</textarea>
+        <input type="hidden" name="messageIntervalSecondsMin" value="{{ runtime_config.sendStrategy.messageIntervalSecondsMin }}">
+        <input type="hidden" name="messageIntervalSecondsMax" value="{{ runtime_config.sendStrategy.messageIntervalSecondsMax }}">
+        <input type="hidden" name="shuffleTargets" value="{% if runtime_config.sendStrategy.shuffleTargets %}on{% endif %}">
+        <button class="button button-primary" type="submit"><i data-lucide="save"></i><span>保存消息内容</span></button>
+      </form>
+      <article class="plan-card feature-preview">
+        <span class="plan-card-icon muted"><i data-lucide="heart"></i></span>
+        <div><strong>好友新作品点赞</strong><p class="muted compact">该能力需要独立的频率控制与风控保护，目前不会自动操作你的点赞。</p></div>
+        <span class="status-chip">规划中</span>
+      </article>
+    </div>
+  </section>
+  {% endif %}
   <div
     class="status-banner {% if ops.task_lock.running %}warning{% elif ops.task_lock.stale %}info{% else %}success{% endif %}"
     data-task-banner
@@ -191,11 +260,11 @@
     </div>
   </section>
 
-  <details class="collapsible-section" id="interactive-login-section">
+  <details class="collapsible-section onboarding-section" id="interactive-login-section" {% if not accounts|length %}open{% endif %}>
     <summary>
       <span class="summary-copy">
         <i data-lucide="scan-line"></i>
-        <span><strong>交互式登录浏览器</strong><small>扫码登录、登录态失效修复与账号同步</small></span>
+        <span><strong>第 1 步 · 登录抖音账号</strong><small>扫码成功后自动保存账号并同步好友</small></span>
       </span>
       <span class="pill" id="login-desktop-runtime-state">待检查</span>
       <i class="summary-chevron" data-lucide="chevron-down"></i>
@@ -343,14 +412,15 @@
   <section class="dashboard-section" id="account-management">
     <div class="section-header">
       <div>
-        <h2 class="section-title">账号管理</h2>
-        <p class="muted compact">管理开关、目标好友、好友缓存和登录态。</p>
+        <span class="section-kicker">第 2 步</span>
+        <h2 class="section-title">选择续火花好友</h2>
+        <p class="muted compact">展开账号，直接搜索并勾选好友，然后保存。</p>
       </div>
       <span class="pill">{{ accounts|length }} 个账号</span>
     </div>
     <div class="account-management-list">
       {% for account in accounts %}
-      <details class="collapsible-section">
+      <details class="collapsible-section account-task-card" {% if accounts|length == 1 %}open{% endif %}>
         <summary>
           <span class="summary-copy">
             <span class="account-avatar">{{ (account.username or "A")[:1] }}</span>
@@ -378,7 +448,7 @@
               </label>
             </div>
             <label>
-              <span>目标好友，每行一个</span>
+              <span>已选择的好友（也可手动输入，每行一个）</span>
               <textarea class="targets-textarea" name="targets" rows="5">{{ account.targets|default([], true)|join('\n') }}</textarea>
             </label>
             <div
@@ -389,12 +459,12 @@
             >
               <div class="friend-picker-toolbar">
                 <div>
-                  <strong>好友选择器</strong>
+                  <strong>选择要续火花的好友</strong>
                   <p class="muted compact friend-picker-status">
                     {% if account.friends_cache_updated_at %}上次刷新：{{ account.friends_cache_updated_at }}{% else %}尚未读取好友列表{% endif %}
                   </p>
                 </div>
-                <button class="button button-quiet friend-refresh-button" type="button">
+                <button class="button button-soft friend-refresh-button" type="button">
                   <i data-lucide="refresh-cw"></i><span>刷新好友</span>
                 </button>
               </div>
